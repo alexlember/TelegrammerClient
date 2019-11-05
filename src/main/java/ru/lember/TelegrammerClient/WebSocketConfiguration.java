@@ -9,6 +9,8 @@ import org.springframework.web.socket.client.WebSocketClient;
 import org.springframework.web.socket.client.standard.StandardWebSocketClient;
 import org.springframework.web.socket.messaging.WebSocketStompClient;
 
+import javax.annotation.PostConstruct;
+
 @Slf4j
 @Configuration
 public class WebSocketConfiguration {
@@ -25,6 +27,7 @@ public class WebSocketConfiguration {
     @Value("${websocket.server.url}")
     private String webSocketServerUrl;
 
+    @PostConstruct
     public void postConstruct() {
         log.info("initialized. webSocketServerScheme: {}, webSocketServerHost: {}, webSocketServerUrl:{}",
                 webSocketServerScheme, webSocketServerHost, webSocketServerPort, webSocketServerUrl);
@@ -36,13 +39,13 @@ public class WebSocketConfiguration {
                 + "://"
                 + webSocketServerHost
                 + ":"
-                + webSocketServerPort
-                + webSocketServerUrl;
+                + webSocketServerPort + "/chat";
+               // + webSocketServerUrl;
 
         WebSocketClient client = new StandardWebSocketClient();
         WebSocketStompClient stompClient = new WebSocketStompClient(client);
         stompClient.setMessageConverter(new MappingJackson2MessageConverter());
-        org.springframework.messaging.simp.stomp.StompSessionHandler sessionHandler = new StompSessionHandler();
+        StompSessionHandler sessionHandler = new StompSessionHandler();
         stompClient.connect(url, sessionHandler);
 
         return client;
