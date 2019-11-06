@@ -39,8 +39,8 @@ public class WebSocketConfiguration {
                 + "://"
                 + webSocketServerHost
                 + ":"
-                + webSocketServerPort + "/chat";
-               // + webSocketServerUrl;
+                + webSocketServerPort
+                + webSocketServerUrl;
 
         WebSocketClient client = new StandardWebSocketClient();
         WebSocketStompClient stompClient = new WebSocketStompClient(client);
