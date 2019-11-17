@@ -30,7 +30,7 @@ public class WebSocketConfiguration {
     @Value("${websocket.server.port}")
     private Integer webSocketServerPort;
 
-    @Value("${websocket.server.url}")
+    @Value("${websocket.server.wsConnectUrl}")
     private String webSocketServerUrl;
 
     @Value("${websocket.connectionTimeoutMs:5000}")
