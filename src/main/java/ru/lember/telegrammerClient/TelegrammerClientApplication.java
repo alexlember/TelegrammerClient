@@ -1,4 +1,4 @@
-package ru.lember.TelegrammerClient;
+package ru.lember.telegrammerClient;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
