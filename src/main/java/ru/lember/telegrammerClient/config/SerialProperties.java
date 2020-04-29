@@ -31,14 +31,20 @@ public class SerialProperties {
     @Value("${serial.flowControl}")
     private FlowControl flowControl;
 
-    @Value("${serial.cmdBeginMarker:^^^}")
-    private String cmdBeginMarker;
+    /**
+     * Shound be 1 symbol.
+     */
+    @Value("${serial.cmdBeginMarker:^}")
+    private Character cmdBeginMarker;
 
-    @Value("${serial.cmdEndMarker:$$$}")
-    private String cmdEndMarker;
+    /**
+     * Shound be 1 symbol.
+     */
+    @Value("${serial.cmdEndMarker:$}")
+    private Character cmdEndMarker;
 
-    @Value("${serial.cmdSeparator:|}")
-    private String cmdSeparator;
+    @Value("${serial.cmdSeparator:#}")
+    private Character cmdSeparator;
 
     @PostConstruct
     private void postConstruct() {

@@ -27,7 +27,7 @@ class SerialConnectorTest {
     @Test
     void sendRequestTest() {
         RequestFromRemote requestFromRemote = new RequestFromRemote(1L, "info", "", 5000L);
-        Assertions.assertEquals("info%1%", connector.send(requestFromRemote));
+        Assertions.assertEquals("info#1#", connector.send(requestFromRemote));
     }
 
     @Test
@@ -51,26 +51,32 @@ class SerialConnectorTest {
                     latch.countDown();
                 }, t -> Assertions.fail("event bus error"));
 
+        connector.constructCmdAndNotify(null);
+        connector.constructCmdAndNotify("");
         connector.constructCmdAndNotify("~");
-        connector.constructCmdAndNotify("~");
-        connector.constructCmdAndNotify("~");
-        connector.constructCmdAndNotify("~");
-
+        connector.constructCmdAndNotify("~"); // nothing is sending
+        connector.constructCmdAndNotify("^"); // appending
+        Assertions.assertEquals("^", connector.constructedCommand());
+        connector.constructCmdAndNotify("^"); // appending, previous buffer is dropped
+        Assertions.assertEquals("^", connector.constructedCommand());
+        connector.constructCmdAndNotify("cmd"); // appending
+        connector.constructCmdAndNotify("cmd"); // appending
+        Assertions.assertEquals("^cmdcmd", connector.constructedCommand());
+        connector.constructCmdAndNotify("cmd"); // appending
+        connector.constructCmdAndNotify("cmd"); // appending
+        Assertions.assertEquals("^cmdcmdcmdcmd", connector.constructedCommand());
+        connector.constructCmdAndNotify("$"); // appending & sending
         Assertions.assertEquals("", connector.constructedCommand());
 
-        connector.constructCmdAndNotify("#");
-        Assertions.assertEquals("#", connector.constructedCommand());
-        connector.constructCmdAndNotify("#");
-        Assertions.assertEquals("##", connector.constructedCommand());
-        connector.constructCmdAndNotify("#%info%rsp%1%");
-        Assertions.assertEquals("###%info%rsp%1%", connector.constructedCommand());
-        connector.constructCmdAndNotify(EXPECTED_INFO_BODY);
-        Assertions.assertEquals("###%info%rsp%1%" + EXPECTED_INFO_BODY, connector.constructedCommand());
-        connector.constructCmdAndNotify("%>");
-        Assertions.assertEquals("###%info%rsp%1%" + EXPECTED_INFO_BODY + "%>", connector.constructedCommand());
+        connector.constructCmdAndNotify("^cmd1$^cmd2$^cmd3begin"); // appending 2 full commands and 1 extra
+        Assertions.assertEquals("^cmd3begin", connector.constructedCommand());
 
-        connector.constructCmdAndNotify(">>");
+        connector.constructCmdAndNotify("^#info#rsp#1#"); // appending
+        connector.constructCmdAndNotify(EXPECTED_INFO_BODY); // appending
+        Assertions.assertEquals("^#info#rsp#1#" + EXPECTED_INFO_BODY, connector.constructedCommand());
+        connector.constructCmdAndNotify("#$"); // appending end
         Assertions.assertEquals("", connector.constructedCommand());
+
 
         Assertions.assertTimeout(Duration.ofSeconds(1), () -> {
             try {

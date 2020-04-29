@@ -2,47 +2,43 @@ package ru.lember.telegrammerClient.arduino;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.StringUtils;
-import reactor.core.publisher.ReplayProcessor;
+import ru.lember.telegrammerClient.config.ArduinoUpdateProcessor;
 import ru.lember.telegrammerClient.config.SerialProperties;
 import ru.lember.telegrammerClient.dto.inner.ArduinoDataUpdate;
 
 import javax.annotation.PostConstruct;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 public abstract class AbstractConnector implements Connector {
 
     private AtomicReference<String> constructedCommand = new AtomicReference<>("");
-    ReplayProcessor<ArduinoDataUpdate> processor = ReplayProcessor.create(1);
-
-    List<String> possibleCmdBegin;
-    List<String> possibleCmdEnd;
-
+    ArduinoUpdateProcessor processor;
     SerialProperties serialProperties;
 
-    AbstractConnector(final SerialProperties serialProperties) {
+    AbstractConnector(final SerialProperties serialProperties, ArduinoUpdateProcessor processor) {
         this.serialProperties = serialProperties;
-        possibleCmdBegin = extractCmd(serialProperties.getCmdBeginMarker(), true);
-        possibleCmdEnd = extractCmd(serialProperties.getCmdEndMarker(), false);
+        this.processor = processor;
     }
 
     @PostConstruct
     private void postConstruct() {
-        log.info("initialized. possibleCmdBegin: {}, possibleCmdEnd: {}",
-                possibleCmdBegin, possibleCmdEnd);
+        log.info("initialized");
 
     }
 
     @Override
-    public ReplayProcessor<ArduinoDataUpdate> processor() {
+    public ArduinoUpdateProcessor processor() {
         return processor;
     }
 
     @Override
-    public String constructedCommand() {
+    public synchronized String constructedCommand() {
         return constructedCommand.get();
+    }
+
+    private synchronized void append(String s) {
+        constructedCommand.set(constructedCommand() + s);
     }
 
     /**
@@ -52,49 +48,68 @@ public abstract class AbstractConnector implements Connector {
 
         log.info("Getting command part: {}", cmdPart);
 
-        if (StringUtils.isEmpty(constructedCommand.get())) {
-            if (possibleCmdBegin.stream()
-                    .anyMatch(cmdPart::startsWith)) {
-                constructedCommand.set(constructedCommand.get() + cmdPart);
+        if (StringUtils.isEmpty(cmdPart)) {
+            return;
+        }
+
+        final String startSymbol = serialProperties.getCmdBeginMarker().toString();
+
+        // before appending
+        String buffer = constructedCommand();
+
+        if (cmdPart.startsWith(startSymbol)) {
+            if (StringUtils.isEmpty(buffer)) {
+                append(cmdPart);
+            } else {
+                constructedCommand.set(cmdPart);
             }
+        } else if (buffer.startsWith(startSymbol)) {
+            append(cmdPart);
+        }
 
-        } else {
 
-            constructedCommand.set(constructedCommand.get() + cmdPart);
+        while(canSend()) {
+            buffer = constructedCommand();
 
-            if (constructedCommand.get().endsWith(serialProperties.getCmdEndMarker())) {
+            log.info("buffer: {}", buffer);
 
+            int beginIndex = constructedCommand()
+                    .indexOf(startSymbol);
+            int endIndex = constructedCommand()
+                    .indexOf(serialProperties.getCmdEndMarker());
+
+            String toSend = buffer.substring(beginIndex, endIndex + 1);
+
+            constructedCommand.set(buffer.substring(endIndex + 1));
+
+            if (!StringUtils.isEmpty(buffer)) {
                 ArduinoDataUpdate dataUpdate = ArduinoDataUpdate.fromSerialCmd(
-                        constructedCommand.get(),
-                        serialProperties.getCmdBeginMarker(),
-                        serialProperties.getCmdEndMarker(),
-                        serialProperties.getCmdSeparator());
+                        toSend,
+                        startSymbol,
+                        serialProperties.getCmdEndMarker().toString(),
+                        serialProperties.getCmdSeparator().toString());
 
                 if (dataUpdate != null) {
                     processor.onNext(dataUpdate);
                 }
-
-                constructedCommand.set("");
             }
         }
 
     }
 
-    private List<String> extractCmd(final String cmdMarker, boolean isBegin) {
+    /**
+     * Method checks if it's possible to send command.
+     */
+    private boolean canSend() {
 
-        List<String> extracted = new ArrayList<>();
+        if (StringUtils.isEmpty(constructedCommand())) return false;
 
-        int length = cmdMarker.length();
-        int counter = 0;
+        int beginIndex = constructedCommand()
+                .indexOf(serialProperties.getCmdBeginMarker());
+        int endIndex = constructedCommand()
+                .indexOf(serialProperties.getCmdEndMarker());
 
-        while (counter < length) {
-            extracted.add(isBegin
-                    ? cmdMarker.substring(0, length - counter)
-                    : cmdMarker.substring(counter));
-            counter++;
-        }
-
-        return extracted;
+        return beginIndex != -1 && endIndex != -1 && beginIndex < endIndex;
     }
 
 

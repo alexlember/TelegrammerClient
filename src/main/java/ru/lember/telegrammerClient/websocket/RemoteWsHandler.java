@@ -69,9 +69,9 @@ public class RemoteWsHandler extends StompSessionHandlerAdapter {
     public void handleFrame(StompHeaders stompHeaders, Object payload) {
         RequestFromRemote requestFromRemote = (RequestFromRemote) payload;
 
-        log.info("Received cmd from remote: " + requestFromRemote.getCmd());
+        log.info("Received cmd from remote: " + requestFromRemote);
 
-        connector.processor().filter(req -> Direction.REQUEST == req.getDirection())
+        connector.processor().filter(req -> Direction.RESPONSE == req.getDirection() && requestFromRemote.getId().equals(req.getId()))
                 .timeout(Duration.ofMillis(requestFromRemote.getTimeoutMs()))
                 .take(1)
                 .subscribe(req -> {

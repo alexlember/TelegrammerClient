@@ -5,6 +5,7 @@ import com.pi4j.io.serial.SerialConfig;
 import com.pi4j.io.serial.SerialDataEventListener;
 import com.pi4j.io.serial.SerialFactory;
 import lombok.extern.slf4j.Slf4j;
+import ru.lember.telegrammerClient.config.ArduinoUpdateProcessor;
 import ru.lember.telegrammerClient.config.SerialProperties;
 import ru.lember.telegrammerClient.dto.in.RequestFromRemote;
 
@@ -18,15 +19,14 @@ public class SerialConnector extends AbstractConnector {
     private boolean isInTestMode;
     private Serial serial;
 
-    public SerialConnector(SerialProperties serialProperties, boolean isInTestMode) {
-        super(serialProperties);
+    public SerialConnector(SerialProperties serialProperties, ArduinoUpdateProcessor processor, boolean isInTestMode) {
+        super(serialProperties, processor);
         this.isInTestMode = isInTestMode;
     }
 
     @PostConstruct
     private void postConstruct() {
-        log.info("initialized. possibleCmdBegin: {}, possibleCmdEnd: {}, isInTestMode: {}",
-                possibleCmdBegin, possibleCmdEnd, isInTestMode);
+        log.info("initialized. isInTestMode: {}", isInTestMode);
 
         if (!isInTestMode) {
             log.info("Starting serial connection");
@@ -37,7 +37,7 @@ public class SerialConnector extends AbstractConnector {
     @Override
     public String send(RequestFromRemote data) {
 
-        String cmd = data.toArduinoCmd(serialProperties.getCmdSeparator());
+        String cmd = data.toArduinoCmd(serialProperties.getCmdSeparator().toString());
         log.info("Sending data: {} via serial interface", cmd);
 
         if (!isInTestMode) {
@@ -71,7 +71,6 @@ public class SerialConnector extends AbstractConnector {
             try {
 
                 String cmdPart = event.getAsciiString();
-                log.info("Received cmd part: " + cmdPart);
                 constructCmdAndNotify(cmdPart);
 
             } catch (IOException e) {

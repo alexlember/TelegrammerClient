@@ -1,6 +1,7 @@
 package ru.lember.telegrammerClient.arduino;
 
 import lombok.extern.slf4j.Slf4j;
+import ru.lember.telegrammerClient.config.ArduinoUpdateProcessorImpl;
 import ru.lember.telegrammerClient.config.SerialProperties;
 import ru.lember.telegrammerClient.dto.in.RequestFromRemote;
 import ru.lember.telegrammerClient.dto.inner.ArduinoDataUpdate;
@@ -28,7 +29,7 @@ public class MockConnector extends AbstractConnector {
     public MockConnector(SerialProperties serialProperties,
                          Long mockRequestSendingPeriodSec,
                          Long mockCmdExecutionDelayMs) {
-        super(serialProperties);
+        super(serialProperties, new ArduinoUpdateProcessorImpl());
         this.mockRequestSendingPeriodSec = mockRequestSendingPeriodSec;
         this.mockCmdExecutionDelayMs = mockCmdExecutionDelayMs;
     }
@@ -36,7 +37,7 @@ public class MockConnector extends AbstractConnector {
     @PostConstruct
     private void postConstruct() {
         log.info("initialized");
-        scheduleRandomRequests();
+        //scheduleRandomRequests(); // todo probably get rid of it
     }
 
     private void scheduleRandomRequests() {
@@ -60,7 +61,7 @@ public class MockConnector extends AbstractConnector {
 
         constructCmdAndNotify(constructFakeResponse(requestFromRemote.getCmd(), String.valueOf(requestFromRemote.getId())));
 
-        return requestFromRemote.toArduinoCmd(serialProperties.getCmdSeparator());
+        return requestFromRemote.toArduinoCmd(serialProperties.getCmdSeparator().toString());
     }
 
     private void delay() {

@@ -15,7 +15,7 @@ import javax.annotation.PostConstruct;
 @Configuration
 public class RealConfiguration {
 
-    @Value("application.isInTestMode:false")
+    @Value("${application.isInTestMode:false}")
     private Boolean isInTestMode;
 
     @PostConstruct
@@ -25,7 +25,7 @@ public class RealConfiguration {
 
     @Bean
     public Connector connector(final SerialProperties serialProperties) {
-        return new SerialConnector(serialProperties, isInTestMode);
+        return new SerialConnector(serialProperties, new ArduinoUpdateProcessorImpl(), isInTestMode);
     }
 
 }

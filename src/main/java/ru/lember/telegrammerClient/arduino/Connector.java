@@ -1,12 +1,11 @@
 package ru.lember.telegrammerClient.arduino;
 
-import reactor.core.publisher.ReplayProcessor;
+import ru.lember.telegrammerClient.config.ArduinoUpdateProcessor;
 import ru.lember.telegrammerClient.dto.in.RequestFromRemote;
-import ru.lember.telegrammerClient.dto.inner.ArduinoDataUpdate;
 
 public interface Connector {
 
-    ReplayProcessor<ArduinoDataUpdate> processor();
+    ArduinoUpdateProcessor processor();
 
     /**
      * Methods returns serial command in string
